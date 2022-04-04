@@ -1,8 +1,6 @@
 const express = require('express')
 const bodyParser = require('body-parser')
 const {writeFileSync, readFileSync} = require('fs')
-const { response } = require('express')
-const { request } = require('http')
 
 const port = 8080
 const json_file = "data.json"
