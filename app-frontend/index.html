@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Codecamp - Survey</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- chart js 💹 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
+
+    <!-- bootstrap 💅 -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+</head>
+<body>
+    <div class="jumbotron text-center wrap">
+        <div class="content">
+            <h2 class="text-success page-header " >CONGRATULATIONS ON COMPLETING THE 2 WEEK BOOTCAMP!</h2>
+            <p class="text-info">What did you like about the bootcamp?</p>
+        </div>
+    </div>
+
+    <!-- Responses -->
+
+    <div class="container">
+        <div class="row">
+            <div class="col-sm-6">
+                <h3>Pick any!</h3>
+                <div class="checkbox-inline">
+                    <input type="checkbox" id="a" class="check">a. The tech used</input><br>
+                    <input type="checkbox" id="b" class="check">b. The skills acquired</input><br>
+                    <input type="checkbox" id="c" class="check">c. The food and drinks</input><br>
+                    <input type="checkbox" id="d" class="check">d. The accomodation</input><br>
+                    <input type="checkbox" id="e" class="check">e. The trainers</input><br>
+                    <input type="checkbox" id="f" class="check">f. The fellow students</input><br>
+                    <input type="checkbox" id="g" class="check">g. Nothing</input><br>
+                </div><br><br>
+                
+                <input class="btn btn-success" type="button" value="submit" onclick="submit()"><br> <br>
+            </div>
+
+            <div class="col-sm-6">
+                <h3>Responses</h3>
+                <div class="card">
+                    <div class="card-body">
+                        <canvas id="chart_responses"></canvas>
+                    </div>
+                </div>
+            </div>
+
+
+        </div>
+    </div>
+
+    <script>
+        // stores response strings for chart
+        xv = []
+
+        // lengthy sanity check to make if opt g is selected,
+        // others are disabled and if none enable all
+        checks=document.getElementsByClassName("check")
+
+        // addrcfg is definetly not a good idea. but will work for now
+        var addrcfg = checks[0].formAction
+        console.log("addrcfg", addrcfg)
+
+        sz=checks.length
+        for (i = 0; checks[i]; i++) {
+            
+            // push first char of id
+            xv.push(checks[i].id)
+            console.log(checks[i])
+
+            // attach an onclick handler to each check
+            checks[i].onclick=function()
+            {
+                // is g checked? disable everything else. else enable it
+                // as the only one
+                if (checks[sz-1].checked) {
+                    for (j = 0; j < sz-1; j++) {
+                        checks[j].disabled=true
+                    }    
+                }else if (!checks[sz-1].checked) {
+                    for (j = 0; j < sz-1; j++) {
+                        checks[j].disabled=false
+                    } 
+                    checks[sz-1].disabled=true
+                }
+                    
+                // get how many arent checked. if all of them arent,
+                // assume g was unchecked and enable everything
+                none=0
+                for (j = 0; j < sz; j++) {
+                    if (!checks[j].checked) {
+                        none++
+                    }
+                }
+                if (none==sz) {
+                    for (j = 0; j < sz; j++) 
+                    {
+                        checks[j].disabled=false
+                    }
+                } 
+            }
+        }
+
+        // send response to server
+        function submit()
+        {
+            const x = new XMLHttpRequest();
+
+            // open a get request to get a blank json 'form'
+            x.open("GET", addrcfg+"getinit")
+            x.onload= function()
+            {
+                // fill the 'form'
+                const init_dat= JSON.parse(this.responseText)
+                for (i = 0; i < init_dat.responses.length ; i++) {
+                    if (checks[i].checked && !checks[i].disabled) {
+                        init_dat.responses[i] = 1
+                    }
+                }
+
+                // log 'form'
+                console.log(JSON.stringify(init_dat))
+
+                // post to server. fill header
+                x.open("POST", addrcfg + "postjson")
+                x.setRequestHeader("Content-type", "application/json")
+
+                // send as string
+                x.send(JSON.stringify(init_dat))
+
+                x.onload = function()
+                {
+                    // annoy the user by sending an alert
+                    alert("You response was send successfully. Thank you!")
+
+                    // refresh page
+                    location.reload()
+                }
+            }
+            // send get
+            x.send()
+        }
+
+        function chart()
+        {
+            x = new XMLHttpRequest();
+            x.open("GET", addrcfg + "getjson")
+            x.onload = function()
+            {
+                const data = JSON.parse(this.responseText)
+                var colors = ['#007bff','#28a745','#333333','#c3e6cb','#dc3545','#6c757d'];
+                var ch = new Chart("chart_responses", 
+                {
+                    type: "line",
+                    data: {
+                        labels: xv,
+                        datasets: [
+                            {
+                                fill: false,
+                                lineTension: 0,
+                                backgroundColor: colors[3],
+                                borderColor: colors[1],
+                                borderWidth: 4,
+                                pointBackgroundColor: colors[1],
+                                data: data.responses
+                            }
+                        ]
+                    },
+                    options: {
+                        legend: {display: false}
+                    }
+                })
+            }
+            x.send()
+        }
+
+        chart()
+
+    </script>
+</body>
+</html>

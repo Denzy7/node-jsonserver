@@ -1,72 +1,96 @@
-const {writeFileSync,readFileSync}=require('fs')
-const express=require('express')
-const bodyParser = require('body-parser');
+const express = require('express')
+const bodyParser = require('body-parser')
+const {writeFileSync, readFileSync, Stats} = require('fs')
+const { response } = require('express')
+const { request } = require('http')
 
-const jsonf="js.json"
+const port = 8080
+const json_file = "data.json"
 
-const port=8080
+// express ctor
+const app = express()
 
-const app=express();
-app.use(bodyParser.json());
+// allows parsing of received json
+app.use(bodyParser.json())
 
-const init_dat=
+// allows serving of a single directory on server
+app.use(express.static("app-frontend"))
+
+// json initializer data to store our responses
+const json_init_dat=
 {
-    "a":[0,0,0],
-    "respsz":3
+    "responses" : [0, 0, 0, 0, 0, 0, 0]
 }
 
-function readjson()
+// read the json file to a json object
+function json_read()
 {
-    return JSON.parse(readFileSync(jsonf))
+    return JSON.parse(readFileSync(json_file))
 }
 
-function writejson(json)
+// convert json object to string then write to server
+function json_write(json)
 {
-    writeFileSync(jsonf,JSON.stringify(json))
+    writeFileSync(json_file, JSON.stringify(json))
 }
 
-function checkjson()
+// check json. on error, write a new json file to server filesys
+function json_check()
 {
-    try {
-        readjson()    
-    } catch (error) {
-        console.log("read error. create new json")
-        writejson(init_dat)
+    try{
+        json_read()
+    }catch(err)
+    {
+        console.log("read error. creating new json")
+        json_write(json_init_dat)
     }
 }
+json_check();
 
-checkjson()
+/* SERVER REQUESTS*/
 
-app.get('/',(request,result)=>
+// NOTE: #1 = its in string format NOT a JSON object. So JSON.parse on frontend
+
+// sends the current json in server filesys , #1
+app.get('/getjson', (request, response) =>
 {
-    result.sendFile("survey.html",{root:__dirname})
-});
+    console.log("getjson : " + request.ip)
+    response.sendFile(json_file, {root: __dirname})
+})
 
-app.get('/getjson',(request,result)=>
+// sends an empty init json for filling by frontend, #1
+app.get('/getinit', (request, response) =>
 {
-    result.sendFile(jsonf,{root:__dirname})
-});
+    console.log("getinit : " + request.ip)
+    response.send(JSON.stringify(json_init_dat))
+})
 
-app.get('/getinit',(request,result)=>
+// post request from frontend to write a json object
+app.post('/postjson', (request, response) =>
 {
-    result.send(JSON.stringify(init_dat))
-});
+    // read server json
+    rd = json_read()
 
-app.post('/savejson',(req,res)=>
-{
-    rd=readjson()
+    // get frontend json from body. dont parse as bodyParser has already done so...
+    fd = request.body
 
-    for (let i = 0; i < init_dat.respsz; i++) {
-        rd.a[i]+=req.body.a[i]
+    // add the frontend responses to server json
+    for(let i = 0; i < json_init_dat.responses.length; i++)
+    {
+        rd.responses[i] += fd.responses[i]
     }
-    writejson(rd)
+    
+    // write the added responses + log
+    json_write(rd)
 
-    console.log(rd,Date.now())
+    console.log(new Date().toLocaleDateString(), new Date().toLocaleTimeString())
+    console.log(rd)
 
-    res.sendStatus(200)
-});
+    response.sendStatus(200)
+})
 
-var server=app.listen(port ,()=>
+var server = app.listen(port, ()=>
 {
-console.log("start on http://localhost:"+server.address().port);
-});
+    console.log(new Date().toLocaleDateString(), new Date().toLocaleTimeString())
+    console.log("started at http://localhost:" + server.address().port)
+})
