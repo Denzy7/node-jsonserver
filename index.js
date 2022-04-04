@@ -1,6 +1,6 @@
 const express = require('express')
 const bodyParser = require('body-parser')
-const {writeFileSync, readFileSync, Stats} = require('fs')
+const {writeFileSync, readFileSync} = require('fs')
 const { response } = require('express')
 const { request } = require('http')
 
